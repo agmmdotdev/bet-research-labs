@@ -30,9 +30,29 @@ Breakeven examples:
 │   ├── lessons-learned.md
 │   ├── market-glossary.md
 │   └── modeling-approach.md
+├── examples/
+│   └── france-sweden.json
+├── scripts/
+│   └── football-value-calculator.mjs
 └── templates/
     └── match-analysis-template.md
 ```
+
+## Running the calculator
+
+The first JavaScript calculator is dependency-free and runs with Node.js.
+
+```bash
+node scripts/football-value-calculator.mjs examples/france-sweden.json
+```
+
+Or with npm:
+
+```bash
+npm run calc:france-sweden
+```
+
+The calculator takes manual expected-goals inputs, builds a Poisson score matrix, calculates market probabilities, compares them with decimal odds, and prints estimated EV per 1 unit staked.
 
 ## Current operating principles
 
