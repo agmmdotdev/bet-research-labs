@@ -1,101 +1,106 @@
-# France vs Sweden — latest 1xBet odds calculation
+# France vs Sweden — refined 1xBet calculation with lineup/news context
 
-Source: user-uploaded 1xBet CSV snapshot on 2026-06-30.
+Source: user-uploaded 1xBet CSV snapshot on 2026-06-30 plus latest accessible team-news sources.
 
-## Model assumptions
+## Lineup/news status
 
-Structured adjusted model:
+No official verified starting XI was available from accessible sources at the time of this update. The latest published expected lineup is:
 
-| Team | Base xG | Adjustments | Final xG |
+- **France expected XI (4-2-3-1):** Maignan; Koundé, Upamecano, Saliba, Theo Hernández; Tchouaméni, Rabiot; Dembélé, Olise, Doué; Mbappé.
+- **Sweden expected XI (4-4-2):** Nordfeldt; Lagerbielke, Lindelöf, Bergvall, Gudmundsson; Bernhardsson, Karlström, Ayari, Elanga; Gyökeres, Isak.
+
+Key news:
+
+- France intend to keep their attacking approach after scoring 10 group-stage goals.
+- Marcus Thuram is ruled out.
+- N'Golo Kanté is doubtful / likely bench.
+- William Saliba is managing a back issue but is expected to feature.
+- Sweden are without Isak Hien, a major central-defensive loss.
+- Sweden still carry threat through Gyökeres, Isak and Elanga.
+- East Rutherford / New Jersey is affected by heat-dome conditions. This slightly lowers tempo and over confidence.
+
+## Refined xG model
+
+The previous model used France 2.35 / Sweden 1.00. After adding the heat and Saliba context, the conservative model becomes:
+
+| Team | Base xG | Key adjustments | Final xG |
 |---|---:|---|---:|
-| France | 2.15 | +0.10 attacking posture, +0.15 Sweden defensive absence, -0.05 knockout caution | 2.35 |
-| Sweden | 0.95 | +0.10 scoring profile, -0.05 knockout caution | 1.00 |
+| France | 2.15 | +0.10 attacking posture, +0.15 Hien absence, +0.05 strong expected front four, -0.15 heat/knockout caution | 2.30 |
+| Sweden | 0.95 | +0.10 scoring profile/counter threat, -0.05 Saliba expected, -0.05 heat/knockout caution | 0.95 |
 
-This is the research model, not a guaranteed truth. The main disagreement with the market is Sweden scoring probability.
-
-## Market snapshot
-
-| Market | Odds | Raw implied probability | No-vig probability where available |
-|---|---:|---:|---:|
-| France ML | 1.333 | 75.02% | 73.83% |
-| Draw | 6.16 | 16.23% | 15.98% |
-| Sweden ML | 9.65 | 10.36% | 10.20% |
-| BTTS Yes | 1.84 | 54.35% | 50.55% |
-| BTTS No | 1.881 | 53.16% | 49.45% |
-| Over 3.5 | 2.195 | 45.56% | 43.96% |
-| Under 3.5 | 1.722 | 58.07% | 56.04% |
-
-## Research-model probabilities
+## Conservative model probabilities
 
 | Output | Probability |
 |---|---:|
-| France win | 67.43% |
-| Draw | 18.07% |
-| Sweden win | 14.50% |
-| Over 2.5 | 65.05% |
-| Over 3.5 | 43.07% |
-| BTTS Yes | 57.18% |
+| France win | 67.66% |
+| Draw | 18.27% |
+| Sweden win | 14.07% |
+| Over 2.5 | 63.04% |
+| Over 3.5 | 40.86% |
+| BTTS Yes | 55.18% |
+| France 3+ team goals | 40.40% |
+| Sweden 1+ team goals | 61.33% |
 
-Top score probabilities:
+Top score cluster:
 
 | Score | Probability |
 |---|---:|
-| 2-0 | 9.69% |
-| 2-1 | 9.69% |
-| 1-0 | 8.24% |
-| 1-1 | 8.24% |
-| 3-0 | 7.59% |
-| 3-1 | 7.59% |
-| 2-2 | 4.84% |
-| 4-0 | 4.46% |
+| 2-0 | 10.26% |
+| 2-1 | 9.74% |
+| 1-0 | 8.92% |
+| 1-1 | 8.47% |
+| 3-0 | 7.86% |
+| 3-1 | 7.47% |
+| 2-2 | 4.63% |
+| 4-0 | 4.52% |
 
-## EV ranking under research model
+## Latest 1xBet market snapshot
+
+| Market | Odds | Raw implied probability |
+|---|---:|---:|
+| France ML | 1.333 | 75.02% |
+| Draw | 6.16 | 16.23% |
+| Sweden ML | 9.65 | 10.36% |
+| BTTS Yes | 1.84 | 54.35% |
+| BTTS No | 1.881 | 53.16% |
+| France -1.5 | 1.839 | 54.38% |
+| Sweden +1.5 | 2.03 | 49.26% |
+| Sweden AH +1.75 | 1.829 | 54.67% |
+| Sweden Asian team total Over 0.75 | 2.04 | 49.02% |
+| France Asian team total Under 2.25 | 2.04 | 49.02% |
+
+## EV ranking under conservative model
 
 | Market | Odds | Model fair odds | EV / 1u | Verdict |
 |---|---:|---:|---:|---|
-| Sweden Handicap +1.5 | 2.03 | 1.814 | +0.1193 | Value candidate |
-| Sweden AH +1.75 | 1.829 | 1.633 | +0.1079 | Value candidate |
-| Sweden Asian team total Over 0.75 | 2.04 | 1.821 | +0.0982 | Value candidate |
-| Sweden AH +2.25 | 1.477 | 1.384 | +0.0607 | Below user's minimum odds target |
-| BTTS Yes | 1.84 | 1.749 | +0.0522 | Value candidate |
-| France Asian team total Under 2.25 | 2.04 | 1.925 | +0.0520 | Value candidate |
-| France team total Under 2.5 | 1.78 | 1.716 | +0.0374 | Value candidate |
-| Sweden team total Over 0.5 | 1.64 | 1.582 | +0.0367 | Below user's minimum odds target |
-
-## Markets rejected by model
-
-| Market | Odds | EV / 1u | Reason |
-|---|---:|---:|---|
-| France ML | 1.333 | -0.1012 | Price too short and below target |
-| France -1.5 | 1.839 | -0.1749 | Model does not support two-goal-margin requirement |
-| France AH -1.75 | 2.042 | -0.1875 | Too dependent on France winning by 2+ |
-| France team total Over 2.5 | 2.04 | -0.1490 | Model gives only 41.72% for 3+ France goals |
-| Over 3.5 | 2.195 | -0.0547 | Price not enough under 3.35 total xG |
-| France win + BTTS Yes | 2.50 | -0.1463 | Too many conditions: France win plus Sweden score |
-| France win + Over 2.5 | 1.74 | -0.1388 | Over condition plus France-win condition is overpriced |
+| Sweden +1.5 handicap | 2.03 | 1.809 | +0.1220 | Value candidate, but exposed to 2-0 / 3-1 France |
+| Sweden AH +1.75 | 1.829 | 1.627 | +0.1114 | Value candidate, half-loss on France by exactly 2 |
+| France Asian team total Under 2.25 | 2.04 | 1.872 | +0.0780 | Value candidate, but uncomfortable vs France attack |
+| Sweden Asian team total Over 0.75 | 2.04 | 1.900 | +0.0600 | Best pure Sweden-scoring angle |
+| Asian Total Under 3.25 | 1.90 | 1.850 | +0.0238 | Thin edge only |
+| BTTS Yes | 1.84 | 1.812 | +0.0153 | Playable but thin after heat/Saliba adjustment |
 
 ## Market-calibrated caution scenario
 
-Fitting the market's 1X2 and total prices gives a rough implied split around France 2.52 xG and Sweden 0.85 xG. Under that scenario:
+Fitting the market's 1X2 and Over/Under 3.5 prices implies approximately:
 
-| Market | Odds | EV / 1u | Verdict |
-|---|---:|---:|---|
-| BTTS Yes | 1.84 | -0.0312 | No value |
-| Sweden Asian team total Over 0.75 | 2.04 | -0.0208 | No value |
-| Sweden AH +1.75 | 1.829 | -0.0116 | No value |
+| Team | Market-implied xG |
+|---|---:|
+| France | 2.54 |
+| Sweden | 0.86 |
 
-So the research edge depends on one key assumption: Sweden's attacking xG should be closer to 1.00 than the market-implied 0.80–0.85.
+Under that market-calibrated scenario, BTTS Yes, Sweden TT Over 0.75, and Sweden +1.75 become slightly negative EV. Therefore, the edge depends on believing Sweden's true attacking xG is closer to **0.95–1.00** than the market-implied **0.85–0.86**.
 
-## Recommendation
+## Refined recommendation
 
-Main pick remains **BTTS Yes @ 1.84**, but with a clear condition:
+1. **Sweden Asian team total Over 0.75 @ 2.04** — best sharp value if we accept Sweden scoring probability is underpriced.
+2. **BTTS Yes @ 1.84** — simpler version, but now a thinner edge after heat and Saliba adjustment.
+3. **Sweden AH +1.75 @ 1.829** — strong model EV, but less aligned with the main scoring thesis and vulnerable to France 2-goal win.
 
-> Bet only if we accept Sweden goal probability as underpriced by the market.
+Avoid:
 
-Best model-supported alternatives:
-
-1. Sweden Asian team total Over 0.75 @ 2.04
-2. Sweden +1.75 Asian Handicap @ 1.829
-3. Sweden +1.5 Handicap @ 2.03
-
-Avoid forcing France ML, France -1.5, France AH -1.75, France team total Over 2.5, and France win + BTTS Yes.
+- France ML @ 1.333: too short.
+- France -1.5 @ 1.839: margin risk too high.
+- France AH -1.75 @ 2.042: poor settlement risk.
+- France team total Over 2.5 @ ~2.04: model gives only about 40% for France 3+ under conservative conditions.
+- France win + BTTS @ 2.50: too many conditions.
