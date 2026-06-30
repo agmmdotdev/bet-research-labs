@@ -1,11 +1,17 @@
 # Football Value Calculator Inputs
 
-The calculator is designed to make betting discussion more precise. It does not discover the truth by itself; it converts assumptions into explicit probabilities and expected value.
+The calculator is designed to make betting discussion more precise. It does not discover the truth by itself; it converts assumptions into explicit probabilities, no-vig comparisons, fair odds, and expected value.
 
 Run:
 
 ```bash
 node scripts/football-value-calculator.mjs examples/france-sweden.json
+```
+
+JSON output:
+
+```bash
+node scripts/football-value-calculator.mjs examples/france-sweden.json --json
 ```
 
 ## Required top-level fields
@@ -19,6 +25,18 @@ node scripts/football-value-calculator.mjs examples/france-sweden.json
   "markets": []
 }
 ```
+
+## Optional defaults
+
+```json
+{
+  "defaults": {
+    "minEVPerUnit": 0.025
+  }
+}
+```
+
+`minEVPerUnit` is the minimum expected profit per 1 unit staked required before the script labels a market as a `value candidate`.
 
 ## Model input
 
@@ -36,32 +54,36 @@ The model supports two formats.
 }
 ```
 
-### Adjusted format
+### Structured adjusted format
 
 ```json
 {
   "model": {
     "base": {
-      "homeXG": 2.20,
+      "homeXG": 2.15,
       "awayXG": 0.95
     },
     "adjustments": [
       {
-        "label": "Home attacking approach",
-        "target": "home",
-        "mode": "add",
-        "value": 0.15
+        "name": "Home attacking posture",
+        "homeDelta": 0.10,
+        "reason": "Home side expected to keep attacking."
       },
       {
-        "label": "Knockout caution",
-        "target": "both",
-        "mode": "multiply",
-        "value": 0.96
+        "name": "Away scoring profile",
+        "awayDelta": 0.10,
+        "reason": "Away side has scored consistently."
+      },
+      {
+        "name": "Knockout caution",
+        "homeDelta": -0.05,
+        "awayDelta": -0.05,
+        "reason": "Knockout state may reduce tempo."
       }
     ],
     "bounds": {
-      "minXG": 0.05,
-      "maxXG": 6.50
+      "min": 0.05,
+      "max": 6.00
     },
     "maxGoals": 12
   }
@@ -70,20 +92,45 @@ The model supports two formats.
 
 ## Adjustment fields
 
-| Field | Allowed values | Meaning |
-|---|---|---|
-| `label` | text | Description shown in output. |
-| `target` | `home`, `away`, `both` | Which xG value the adjustment changes. |
-| `mode` | `add`, `multiply`, `percent` | How the value is applied. |
-| `value` | number | Adjustment amount. |
+| Field | Meaning |
+|---|---|
+| `name` | Human-readable adjustment label. |
+| `reason` | Why the adjustment exists. Printed in the trace. |
+| `homeDelta` | Add/subtract absolute xG from the home team. |
+| `awayDelta` | Add/subtract absolute xG from the away team. |
+| `homePct` | Percentage adjustment to home xG. `0.10` means +10%. |
+| `awayPct` | Percentage adjustment to away xG. `-0.08` means -8%. |
+| `homeMultiplier` | Direct multiplier for home xG. `0.96` means multiply by 0.96. |
+| `awayMultiplier` | Direct multiplier for away xG. |
 
 Adjustment examples:
 
 | Example | Meaning |
 |---|---|
-| `{ "mode": "add", "value": 0.15 }` | Adds 0.15 xG. |
-| `{ "mode": "multiply", "value": 0.96 }` | Multiplies xG by 0.96. |
-| `{ "mode": "percent", "value": -0.08 }` | Reduces xG by 8%. |
+| `{ "homeDelta": 0.15 }` | Adds 0.15 xG to the home team. |
+| `{ "awayDelta": -0.10 }` | Removes 0.10 xG from the away team. |
+| `{ "homePct": 0.08 }` | Increases home xG by 8%. |
+| `{ "awayMultiplier": 0.92 }` | Multiplies away xG by 0.92. |
+
+## Optional market calibration prior
+
+Use this when you want to blend the manual model back toward a market-implied goal expectation.
+
+```json
+{
+  "model": {
+    "marketCalibration": {
+      "enabled": true,
+      "marketHomeXG": 2.25,
+      "marketAwayXG": 1.05,
+      "weight": 0.35,
+      "reason": "Blend manual xG with market prior to reduce overconfidence."
+    }
+  }
+}
+```
+
+A weight of `0.35` means final xG is 65% manual model and 35% market prior.
 
 ## No-vig groups
 
@@ -101,6 +148,18 @@ Use `noVigGroups` to see bookmaker margin and no-vig implied probabilities.
       ]
     }
   ]
+}
+```
+
+Markets can reference a no-vig outcome using `baseline`:
+
+```json
+{
+  "name": "Home ML",
+  "type": "1x2",
+  "selection": "home",
+  "odds": 1.80,
+  "baseline": { "group": "1X2 example odds", "outcome": "Home" }
 }
 ```
 
@@ -182,6 +241,30 @@ Use `noVigGroups` to see bookmaker margin and no-vig implied probabilities.
 }
 ```
 
+### Result and total
+
+```json
+{
+  "name": "Germany win + Under 3.5",
+  "type": "result_and_total",
+  "selection": "home",
+  "side": "under",
+  "line": 3.5,
+  "odds": 1.75
+}
+```
+
+### Win and BTTS
+
+```json
+{
+  "name": "France win + BTTS Yes",
+  "type": "win_and_btts",
+  "selection": "home",
+  "odds": 2.45
+}
+```
+
 ## Output interpretation
 
 The calculator prints:
@@ -189,9 +272,11 @@ The calculator prints:
 | Output | Meaning |
 |---|---|
 | `raw` | Raw implied probability from decimal odds. |
-| `fair` | Model fair odds based on the settlement distribution. |
+| `model fair` | Fair odds from the model's settlement distribution. |
+| `raw edge` | Model-equivalent probability minus raw implied probability. |
+| `no-vig edge` | Model-equivalent probability minus selected no-vig baseline probability. |
 | `EV` | Expected profit/loss per 1 unit staked. |
-| `value candidate` | EV is above the configured threshold, default 0.03 units. |
+| `value candidate` | EV is above the configured threshold. |
 | `thin edge` | Positive EV, but below threshold. |
 | `no value by model` | Negative EV under the current assumptions. |
 
