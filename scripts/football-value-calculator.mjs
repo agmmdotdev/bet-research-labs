@@ -4,6 +4,17 @@ import fs from 'node:fs';
 const EPS = 1e-9;
 const pct = (x) => `${(x * 100).toFixed(2)}%`;
 const units = (x) => `${x > 0 ? '+' : ''}${x.toFixed(4)}`;
+const decimals = (x) => Number.isFinite(x) ? x.toFixed(3) : 'n/a';
+
+function assertNumber(value, label) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`${label} must be a finite number`);
+  }
+}
+
+function clamp(value, min = 0.05, max = 6.5) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function poisson(lambda, k) {
   let p = Math.exp(-lambda);
@@ -12,6 +23,8 @@ function poisson(lambda, k) {
 }
 
 function matrix(homeXG, awayXG, maxGoals = 12) {
+  assertNumber(homeXG, 'homeXG');
+  assertNumber(awayXG, 'awayXG');
   const rows = [];
   let mass = 0;
   for (let h = 0; h <= maxGoals; h++) {
@@ -51,6 +64,67 @@ function empty() {
   return { fullWin: 0, halfWin: 0, push: 0, halfLoss: 0, fullLoss: 0 };
 }
 
+function normalizeTeam(value, fieldName = 'team') {
+  const team = String(value ?? '').toLowerCase();
+  if (team === 'home' || team === 'away') return team;
+  throw new Error(`${fieldName} must be "home" or "away"`);
+}
+
+function normalizeTarget(value) {
+  const target = String(value ?? '').toLowerCase();
+  if (target === 'home' || target === 'away' || target === 'both') return target;
+  throw new Error('adjustment target must be "home", "away", or "both"');
+}
+
+function applyAdjustmentValue(current, adj) {
+  const mode = String(adj.mode ?? 'add').toLowerCase();
+  assertNumber(adj.value, `adjustment "${adj.label ?? 'unlabeled'}" value`);
+  if (mode === 'add') return current + adj.value;
+  if (mode === 'multiply' || mode === 'multiplier') return current * adj.value;
+  if (mode === 'percent') return current * (1 + adj.value);
+  throw new Error(`Unsupported adjustment mode: ${adj.mode}`);
+}
+
+function resolveModel(model = {}) {
+  const baseHome = model.homeXG ?? model.base?.homeXG;
+  const baseAway = model.awayXG ?? model.base?.awayXG;
+  assertNumber(baseHome, 'model.homeXG or model.base.homeXG');
+  assertNumber(baseAway, 'model.awayXG or model.base.awayXG');
+
+  const bounds = model.bounds ?? {};
+  const minXG = bounds.minXG ?? 0.05;
+  const maxXG = bounds.maxXG ?? 6.5;
+  let homeXG = baseHome;
+  let awayXG = baseAway;
+  const trace = [{ label: 'base', homeXG, awayXG, note: 'starting expected goals' }];
+
+  for (const adj of model.adjustments ?? []) {
+    const target = normalizeTarget(adj.target);
+    if (target === 'home' || target === 'both') homeXG = applyAdjustmentValue(homeXG, adj);
+    if (target === 'away' || target === 'both') awayXG = applyAdjustmentValue(awayXG, adj);
+    homeXG = clamp(homeXG, minXG, maxXG);
+    awayXG = clamp(awayXG, minXG, maxXG);
+    trace.push({
+      label: adj.label ?? 'adjustment',
+      target,
+      mode: adj.mode ?? 'add',
+      value: adj.value,
+      homeXG,
+      awayXG,
+      note: adj.note ?? null
+    });
+  }
+
+  return {
+    ...model,
+    base: { homeXG: baseHome, awayXG: baseAway },
+    homeXG,
+    awayXG,
+    trace,
+    maxGoals: model.maxGoals ?? 12
+  };
+}
+
 function marketSettlement(rows, m) {
   const out = empty();
   for (const { h, a, p } of rows) {
@@ -72,14 +146,15 @@ function marketSettlement(rows, m) {
     } else if (m.type === 'total' || m.type === 'asian_total') {
       b = bucket(splitLine(m.line).map((line) => settleOU(total, m.side, line)));
     } else if (m.type === 'team_total') {
-      const goals = m.team === 'home' ? h : a;
+      const goals = normalizeTeam(m.team) === 'home' ? h : a;
       b = bucket(splitLine(m.line).map((line) => settleOU(goals, m.side, line)));
     } else if (m.type === 'asian_handicap') {
-      const gf = m.team === 'home' ? h : a;
-      const ga = m.team === 'home' ? a : h;
+      const team = normalizeTeam(m.team);
+      const gf = team === 'home' ? h : a;
+      const ga = team === 'home' ? a : h;
       b = bucket(splitLine(m.line).map((line) => {
         const margin = gf + line - ga;
-        return margin > 0 ? 1 : margin === 0 ? 0 : -1;
+        return margin > 0 ? 1 : Math.abs(margin) < EPS ? 0 : -1;
       }));
     } else {
       throw new Error(`Unsupported market type: ${m.type}`);
@@ -95,6 +170,13 @@ function ev(settle, odds) {
     settle.halfWin * ((odds - 1) / 2) -
     settle.halfLoss * 0.5 -
     settle.fullLoss;
+}
+
+function fairOdds(settle) {
+  const winWeight = settle.fullWin + 0.5 * settle.halfWin;
+  const lossWeight = settle.fullLoss + 0.5 * settle.halfLoss;
+  if (winWeight <= EPS) return Infinity;
+  return (winWeight + lossWeight) / winWeight;
 }
 
 function noVig(group) {
@@ -114,27 +196,38 @@ function summarize(rows) {
   return s;
 }
 
+function verdict(value, threshold = 0.03) {
+  if (value >= threshold) return 'value candidate';
+  if (value > 0) return 'thin edge';
+  return 'no value by model';
+}
+
 function analyze(cfg) {
-  const rows = matrix(cfg.model.homeXG, cfg.model.awayXG, cfg.model.maxGoals ?? 12);
+  const model = resolveModel(cfg.model);
+  const rows = matrix(model.homeXG, model.awayXG, model.maxGoals);
+  const evThreshold = cfg.evThreshold ?? 0.03;
   return {
     match: cfg.match,
     teams: { home: cfg.homeTeam, away: cfg.awayTeam },
-    model: cfg.model,
+    model,
     noVigGroups: (cfg.noVigGroups ?? []).map(noVig),
     summary: summarize(rows),
     topScores: [...rows].sort((a, b) => b.p - a.p).slice(0, cfg.topScores ?? 8).map((r) => ({ score: `${r.h}-${r.a}`, p: r.p })),
     markets: (cfg.markets ?? []).map((m) => {
       const settlement = marketSettlement(rows, m);
       const value = ev(settlement, m.odds);
+      const fair = fairOdds(settlement);
       return {
         name: m.name,
         odds: m.odds,
         rawImplied: 1 / m.odds,
+        fairOdds: fair,
+        oddsEdge: Number.isFinite(fair) ? m.odds - fair : null,
         settlement,
         profitProbability: settlement.fullWin + settlement.halfWin,
         notLosingProbability: settlement.fullWin + settlement.halfWin + settlement.push,
         evPerUnit: value,
-        verdict: value > 0.03 ? 'value candidate' : value > 0 ? 'thin edge' : 'no value by model'
+        verdict: verdict(value, evThreshold)
       };
     })
   };
@@ -142,7 +235,16 @@ function analyze(cfg) {
 
 function print(result) {
   console.log(`\n${result.match}`);
-  console.log(`${result.teams.home} xG ${result.model.homeXG} | ${result.teams.away} xG ${result.model.awayXG}`);
+  console.log(`${result.teams.home} final xG ${decimals(result.model.homeXG)} | ${result.teams.away} final xG ${decimals(result.model.awayXG)}`);
+  console.log(`${result.teams.home} base xG ${decimals(result.model.base.homeXG)} | ${result.teams.away} base xG ${decimals(result.model.base.awayXG)}`);
+
+  if (result.model.trace?.length > 1) {
+    console.log('\nModel adjustments');
+    for (const step of result.model.trace.slice(1)) {
+      const val = step.mode === 'percent' ? pct(step.value) : step.value;
+      console.log(`- ${step.label}: target ${step.target}, ${step.mode} ${val} => home ${decimals(step.homeXG)}, away ${decimals(step.awayXG)}`);
+    }
+  }
 
   if (result.noVigGroups.length) {
     console.log('\nNo-vig baselines');
@@ -163,8 +265,8 @@ function print(result) {
   console.log('\nMarkets');
   for (const m of result.markets) {
     const st = m.settlement;
-    console.log(`- ${m.name} @ ${m.odds}: raw ${pct(m.rawImplied)}, profit ${pct(m.profitProbability)}, EV ${units(m.evPerUnit)} => ${m.verdict}`);
-    console.log(`  FW ${pct(st.fullWin)} | HW ${pct(st.halfWin)} | Push ${pct(st.push)} | HL ${pct(st.halfLoss)} | FL ${pct(st.fullLoss)}`);
+    console.log(`- ${m.name} @ ${m.odds}: raw ${pct(m.rawImplied)}, fair ${decimals(m.fairOdds)}, EV ${units(m.evPerUnit)} => ${m.verdict}`);
+    console.log(`  Profit ${pct(m.profitProbability)} | Not losing ${pct(m.notLosingProbability)} | FW ${pct(st.fullWin)} | HW ${pct(st.halfWin)} | Push ${pct(st.push)} | HL ${pct(st.halfLoss)} | FL ${pct(st.fullLoss)}`);
   }
 }
 
@@ -173,6 +275,12 @@ if (!file) {
   console.error('Usage: node scripts/football-value-calculator.mjs <config.json> [--json]');
   process.exit(1);
 }
-const result = analyze(JSON.parse(fs.readFileSync(file, 'utf8')));
-if (process.argv.includes('--json')) console.log(JSON.stringify(result, null, 2));
-else print(result);
+
+try {
+  const result = analyze(JSON.parse(fs.readFileSync(file, 'utf8')));
+  if (process.argv.includes('--json')) console.log(JSON.stringify(result, null, 2));
+  else print(result);
+} catch (err) {
+  console.error(`Error: ${err.message}`);
+  process.exit(1);
+}
