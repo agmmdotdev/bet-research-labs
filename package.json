@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "calc:france-sweden": "node scripts/football-value-calculator.mjs examples/france-sweden.json",
+    "check:1xbet": "node scripts/check-1xbet-live.cjs --query \"france sweden\"",
     "test": "node scripts/test-calculator.mjs"
   }
 }
