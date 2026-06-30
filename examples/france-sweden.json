@@ -1,10 +1,43 @@
 {
-  "match": "France vs Sweden - illustrative pre-match model",
+  "match": "France vs Sweden - illustrative adjusted model",
   "homeTeam": "France",
   "awayTeam": "Sweden",
+  "evThreshold": 0.03,
   "model": {
-    "homeXG": 2.35,
-    "awayXG": 1.05,
+    "base": {
+      "homeXG": 2.20,
+      "awayXG": 0.95
+    },
+    "adjustments": [
+      {
+        "label": "France attacking approach",
+        "target": "home",
+        "mode": "add",
+        "value": 0.15
+      },
+      {
+        "label": "Sweden defensive absence",
+        "target": "home",
+        "mode": "add",
+        "value": 0.10
+      },
+      {
+        "label": "Sweden transition and set-piece threat",
+        "target": "away",
+        "mode": "add",
+        "value": 0.15
+      },
+      {
+        "label": "Knockout caution",
+        "target": "both",
+        "mode": "multiply",
+        "value": 0.96
+      }
+    ],
+    "bounds": {
+      "minXG": 0.05,
+      "maxXG": 6.50
+    },
     "maxGoals": 12
   },
   "noVigGroups": [
