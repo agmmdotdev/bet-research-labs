@@ -1,5 +1,7 @@
 # Context Factors Checklist
 
+This is the canonical checklist for weather, player condition, travel, pitch, venue, referee, tactical, and market-movement adjustments in Bet Research Labs.
+
 Context factors should be included in betting research, but only through controlled adjustments. The goal is to avoid emotional overreaction while still accounting for match realities that a base model may miss.
 
 ## Principle
