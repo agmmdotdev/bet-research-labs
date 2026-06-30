@@ -28,7 +28,7 @@ Breakeven examples:
 │   ├── bankroll-rules.md
 │   ├── betting-framework.md
 │   ├── calculator-inputs.md
-│   ├── context-adjustments.md
+│   ├── context-adjustment-guide.md
 │   ├── lessons-learned.md
 │   ├── market-glossary.md
 │   └── modeling-approach.md
