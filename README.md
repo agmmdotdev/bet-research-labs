@@ -25,16 +25,19 @@ Breakeven examples:
 ├── data/
 │   └── prediction-log.csv
 ├── docs/
+│   ├── 1xbet-humanizer-script-review.md
 │   ├── bankroll-rules.md
 │   ├── betting-framework.md
 │   ├── calculator-inputs.md
 │   ├── context-factors.md
 │   ├── lessons-learned.md
+│   ├── live-1xbet-api-runbook.md
 │   ├── market-glossary.md
 │   └── modeling-approach.md
 ├── examples/
 │   └── france-sweden.json
 ├── scripts/
+│   ├── check-1xbet-live.cjs
 │   └── football-value-calculator.mjs
 └── templates/
     └── match-analysis-template.md
@@ -57,6 +60,22 @@ npm run calc:france-sweden
 The calculator takes manual expected-goals inputs, builds a Poisson score matrix, calculates market probabilities, compares them with decimal odds, and prints estimated EV per 1 unit staked.
 
 See `docs/calculator-inputs.md` for the full JSON input format.
+
+## Checking live 1xBet reachability
+
+The repo includes a diagnostic script for the live odds/template endpoints:
+
+```bash
+npm run check:1xbet
+```
+
+Or directly:
+
+```bash
+node scripts/check-1xbet-live.cjs --query "france sweden"
+```
+
+See `docs/live-1xbet-api-runbook.md` for DNS, endpoint, mirror, and template-cache troubleshooting.
 
 ## Current operating principles
 
