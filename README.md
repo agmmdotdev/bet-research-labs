@@ -28,6 +28,7 @@ Breakeven examples:
 │   ├── bankroll-rules.md
 │   ├── betting-framework.md
 │   ├── calculator-inputs.md
+│   ├── context-adjustments.md
 │   ├── lessons-learned.md
 │   ├── market-glossary.md
 │   └── modeling-approach.md
@@ -65,6 +66,7 @@ See `docs/calculator-inputs.md` for the full JSON input format.
 4. Demand price discipline. A correct idea can still be a bad bet if the odds are too short.
 5. Track the outcome and the process separately. A bad process can win; a good process can lose.
 6. Treat bookmaker odds as the baseline, then test whether our calibrated football model improves on that baseline.
+7. Apply weather, player-condition, venue, referee, and tactical factors as explicit context adjustments rather than vague confidence boosts.
 
 ## Important disclaimer
 
