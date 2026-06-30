@@ -4,153 +4,245 @@ Date: 2026-06-30
 
 ## Review scope
 
-The pasted script fragment starts a Node.js CLI script intended to load 1xBet bet-template metadata from:
+Reviewed the updated `humanize-1xbet-odds.js` script and companion CLI notes uploaded by the user.
 
-```text
-https://mm.1xbet.com/genfiles/cms/betstemplates
-```
+The updated script supports:
 
-and use the template chunks to humanize raw `GetGameZip` odds data.
+- search-only mode via `Web_SearchZip`,
+- search + select + `GetGameZip`,
+- direct `--game-id` fetch,
+- saved raw `GetGameZip` input conversion,
+- template chunk loading from 1xBet bet-template catalogs,
+- human-readable JSON/CSV output,
+- summary output,
+- fallback row confidence when templates do not resolve.
 
-The pasted version ends inside `loadTemplates()` at:
-
-```js
-Object.assign(templates, chunkBody);
-```
-
-Therefore, the visible script is incomplete and cannot be confirmed end-to-end.
-
-## Local checks performed
-
-### Syntax check
+## Static checks
 
 Command:
 
 ```bash
-node --check humanize-1xbet-odds.partial.js
+node --check /mnt/data/8a0522fe-34e6-4ba6-b384-31e0c75eeab9.js
 ```
 
 Result:
 
 ```text
-SyntaxError: Unexpected end of input
+Pass: no syntax errors.
 ```
 
-Reason: the pasted code is truncated before closing the loop, function, and program body.
-
-### Endpoint check
-
-Attempted to fetch:
-
-```text
-https://mm.1xbet.com/genfiles/cms/betstemplates/bets_model_map_short_en.json
-https://mm.1xbet.com/genfiles/cms/betstemplates/bets_model_short_en_0.json
-```
-
-Result from this environment:
-
-```text
-Could not resolve host: mm.1xbet.com
-```
-
-This does not prove the endpoint is invalid. It only means the current execution environment could not resolve that host.
-
-### Unit-level logic check
-
-The visible `parseArgs()` and `findChunkId()` logic is directionally correct, but `parseArgs()` does not validate missing flag values.
-
-Example problem:
+Help output also rendered successfully with:
 
 ```bash
-node humanize-1xbet-odds.js --input
+node /mnt/data/8a0522fe-34e6-4ba6-b384-31e0c75eeab9.js --help
 ```
 
-Current behavior would set:
+## Live endpoint check
 
-```js
-args.input = undefined
+Attempted live search:
+
+```bash
+node humanize-1xbet-odds.js --search "france sweden" --limit 3 --out-dir /mnt/data/1xbet-test
 ```
 
-A production CLI should throw a clear error instead.
+Result in this execution environment:
 
-## Visible logic assessment
+```text
+TypeError: fetch failed
+```
 
-### Good parts
+DNS checks:
 
-- Uses a CLI argument parser with sane defaults.
-- Supports `short` and `full` template names.
-- Uses the 1xBet template-map file to determine which template chunks are needed.
-- Loads only required chunks rather than blindly downloading every template file.
-- Uses a browser-like user agent.
-- `findChunkId()` correctly defaults low group IDs to chunk `0`.
+```text
+1x-bet-mm.com: Temporary failure in name resolution
+mm.1xbet.com: Temporary failure in name resolution
+```
 
-### Issues / risks
+Conclusion: live 1xBet API/template access is **not confirmed from this environment** because both domains failed DNS resolution. This does not prove the endpoints are invalid; it means the current container cannot resolve them.
+
+## Mocked end-to-end test
+
+Because live DNS failed, a local HTTP mock server was created to simulate:
+
+- `/service-api/LineFeed/Web_SearchZip`,
+- `/service-api/LineFeed/GetGameZip`,
+- `/genfiles/cms/betstemplates/bets_model_map_short_en.json`,
+- `/genfiles/cms/betstemplates/bets_model_short_en_0.json`,
+- `/genfiles/cms/betstemplates/bets_model_short_en_1.json`.
+
+The script constants were patched locally to point to `http://127.0.0.1:34567` only for testing.
+
+### Search-only test
+
+Command:
+
+```bash
+node humanize-1xbet-odds.js --search "france sweden" --limit 5 --out-dir outputs
+```
+
+Result:
+
+```json
+{
+  "query": "france sweden",
+  "matches": [
+    {
+      "index": 1,
+      "game_id": 732163048,
+      "canonical_url_game_id": 345000111,
+      "sport": "Football",
+      "league": "World Cup 2026",
+      "country": "World",
+      "team1": "France",
+      "team2": "Sweden",
+      "start_unix": 1782853200,
+      "start_iso_utc": "2026-06-30T21:00:00.000Z",
+      "markets_count": 5,
+      "headline_odds": {
+        "team1": "1.333",
+        "draw": "6.16",
+        "team2": "9.65"
+      }
+    }
+  ]
+}
+```
+
+### Search + select + humanize test
+
+Command:
+
+```bash
+node humanize-1xbet-odds.js --search "france sweden" --select 1 --out-dir outputs
+```
+
+Result:
+
+```json
+{
+  "game_id": 732163048,
+  "rows": 6,
+  "template_rows": 6,
+  "fallback_rows": 0,
+  "files": {
+    "raw": ".../france-sweden-732163048-raw.json",
+    "csv": ".../france-sweden-732163048-human-readable.csv",
+    "json": ".../france-sweden-732163048-human-readable.json",
+    "summary": ".../france-sweden-732163048-summary.json"
+  }
+}
+```
+
+CSV output correctly humanized:
+
+```text
+1X2,Full time result,France,...,1.333,...,template
+1X2,Full time result,Draw,...,6.16,...,template
+1X2,Full time result,Sweden,...,9.65,...,template
+Total Goals,Main total,Over 2.5,...,1.55,...,template
+Total Goals,Main total,Under 2.5,...,2.36,...,template
+Player Shots,Player shots on target,Kylian Mbappe 1+ shot on target,...,1.95,...,template
+```
+
+### Direct `--game-id` test
+
+Command:
+
+```bash
+node humanize-1xbet-odds.js --game-id 732163048 --out-dir outputs2 --no-write-raw
+```
+
+Result:
+
+```json
+{
+  "game_id": 732163048,
+  "rows": 6,
+  "template_rows": 6,
+  "fallback_rows": 0,
+  "files": {
+    "raw": "",
+    "csv": ".../france-sweden-732163048-human-readable.csv",
+    "json": ".../france-sweden-732163048-human-readable.json",
+    "summary": ".../france-sweden-732163048-summary.json"
+  }
+}
+```
+
+This confirms `--no-write-raw` works as designed.
+
+### Saved `--input` test
+
+Command:
+
+```bash
+node humanize-1xbet-odds.js --input france-sweden-732163048-raw.json --out-dir outputs3
+```
+
+Result:
+
+```json
+{
+  "game_id": 732163048,
+  "rows": 6,
+  "template_rows": 6,
+  "fallback_rows": 0,
+  "api_url": ""
+}
+```
+
+This confirms saved raw `GetGameZip` conversion works, assuming template downloads are available.
+
+### Fallback confidence test
+
+A raw input with unknown market group `999` and unknown outcome `555` produced:
+
+```text
+market:999,market:999,outcome:555,...,id_fallback
+```
+
+Summary:
+
+```json
+{
+  "rows": 1,
+  "template_rows": 0,
+  "fallback_rows": 1
+}
+```
+
+This confirms the fallback path works.
+
+## Confirmed behavior
+
+Confirmed locally:
+
+- Syntax is valid.
+- Help output is valid.
+- Search-only JSON structure is correct under a mocked API.
+- `--search --select` fetches and humanizes a selected game under a mocked API.
+- `--game-id` fetches and humanizes under a mocked API.
+- `--input` converts saved raw JSON.
+- Template chunk loading works.
+- `^1^`, `^2^`, `W1`, `W2`, `X`, `()`, and `[]` replacement paths work in the tested cases.
+- CSV output columns match the documented stable columns.
+- Summary output correctly counts rows, template rows, fallback rows, API event count, and UI all-markets count.
+- Fallback confidence correctly becomes `id_fallback` when a template is missing.
+
+## Remaining risks / recommended fixes
 
 | Issue | Severity | Recommendation |
 |---|---|---|
-| Pasted script is incomplete | High | Provide the full file before end-to-end confirmation. |
-| Missing CLI value validation | Medium | Reject `--input`, `--out-dir`, `--lang`, or `--name-type` if no value follows. |
-| Requires global `fetch` | Medium | Require Node.js 18+ or use `undici` / `node-fetch`. |
-| Endpoint could not be resolved in current environment | Medium | Test on local machine/VPS where `mm.1xbet.com` resolves. |
-| `findChunkId()` silently falls back to `0` for invalid group IDs | Low-medium | Skip invalid IDs or warn. |
-| Template shape is assumed | Medium | Validate chunk body before merging. |
-| Raw `GetGameZip` structure not included | High | Cannot verify market-name mapping without sample raw JSON. |
+| Live DNS/API access not confirmed here | High | Run from the user's local machine/VPS where 1xBet domains resolve. |
+| Missing flag-value validation | Medium | Add `readValue()` so `--input`, `--search`, `--select`, etc. cannot silently consume `undefined` or another flag. |
+| Numeric argument validation | Medium | Validate `--limit`, `--country`, `--partner`, `--cfview`, and `--mode` are finite numbers. |
+| Requires Node 18+ global `fetch` | Medium | Document Node 18+ requirement or import `undici`. |
+| Template catalog shape assumptions | Low-medium | Add defensive validation for template chunks. |
+| `--input` output returns `files.raw: ""` | Low | Acceptable, but consider returning the input path for clarity. |
+| `findChunkId()` falls back to chunk `0` for unknown ranges | Low-medium | Keep fallback, but optionally warn in verbose mode. |
 
-## Recommended patch for argument validation
+## Production-readiness verdict
 
-```js
-function readValue(argv, index, flag) {
-  const value = argv[index + 1];
-  if (!value || value.startsWith("--")) {
-    throw new Error(`${flag} requires a value`);
-  }
-  return value;
-}
-```
+Status: **locally confirmed with mocked end-to-end API/template flow; live 1xBet network access not confirmed in this environment.**
 
-Usage:
-
-```js
-if (arg === "--input") {
-  args.input = readValue(argv, i, arg);
-  i += 1;
-}
-```
-
-## Expected completion for `loadTemplates()`
-
-The visible function likely needs to end like this:
-
-```js
-    Object.assign(templates, chunkBody);
-  }
-
-  return templates;
-}
-```
-
-## Confirmation status
-
-Current status: **not fully confirmed**.
-
-Confirmed:
-
-- The visible design is reasonable.
-- `parseArgs()` and `findChunkId()` work for normal cases.
-- The pasted version is syntactically incomplete.
-- The current environment cannot resolve the 1xBet template host.
-
-Not confirmed:
-
-- End-to-end live template download.
-- Raw `GetGameZip` parsing.
-- Correct humanized market-name generation.
-- CSV/JSON output correctness.
-
-## Next required inputs
-
-To fully test the script, provide:
-
-1. the complete script file,
-2. one raw `GetGameZip` JSON sample,
-3. expected output format or a known-good output sample.
+The script is good enough to run on the user's machine for real 1xBet testing. Before treating it as production-stable, add flag-value validation and numeric validation, then run a real live test against `--search "france sweden" --select 1` from an environment that can resolve the 1xBet domains.
