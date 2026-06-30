@@ -1,0 +1,9 @@
+{
+  "name": "bet-research-labs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "calc:france-sweden": "node scripts/football-value-calculator.mjs examples/france-sweden.json"
+  }
+}
