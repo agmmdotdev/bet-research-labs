@@ -67,7 +67,15 @@ Lesson:
 
 > Bet the market that matches the incentives, not the more famous team.
 
-## 7. Track result quality and process quality separately
+## 7. Result + total bets need two strong legs
+
+Germany vs Paraguay exposed the fragility of **favorite win + Under** markets. Even when the total read is reasonable, the bet still loses if the favorite-win leg fails.
+
+Lesson:
+
+> Do not use result + total only to boost odds. First confirm that the 90-minute win leg is strong enough by itself; then add the total condition only if it matches the most likely score band.
+
+## 8. Track result quality and process quality separately
 
 A bet can win for the wrong reason, and a bet can lose despite a good read. The log should record both.
 
