@@ -28,7 +28,8 @@ Breakeven examples:
 │   ├── bankroll-rules.md
 │   ├── betting-framework.md
 │   ├── lessons-learned.md
-│   └── market-glossary.md
+│   ├── market-glossary.md
+│   └── modeling-approach.md
 └── templates/
     └── match-analysis-template.md
 ```
@@ -40,6 +41,7 @@ Breakeven examples:
 3. Choose the market that matches the script: double chance, team total, Asian handicap, BTTS, win + total, or under/over.
 4. Demand price discipline. A correct idea can still be a bad bet if the odds are too short.
 5. Track the outcome and the process separately. A bad process can win; a good process can lose.
+6. Treat bookmaker odds as the baseline, then test whether our calibrated football model improves on that baseline.
 
 ## Important disclaimer
 
