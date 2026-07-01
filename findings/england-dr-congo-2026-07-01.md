@@ -81,3 +81,22 @@ Top score cluster:
 4. **Bellingham 1+ shot on target @ 2.00 boost** — player-prop promo only.
 
 Score lean: **England 1-0 or 2-0**, backup **1-1 after 90 minutes**.
+
+## Post-match / settlement note
+
+User confirmed:
+
+- **Under 2.5 main pick failed.**
+- **Actual placed bet: England win + Under 3.5 won.**
+
+The final score and closing odds still need independent logging.
+
+Process review:
+
+- The low-scoring controlled-game read was directionally useful, but **Under 2.5 was too strict**.
+- The model already had **England 3-0** and **England 2-1** as live score outcomes at 8.30% each.
+- Therefore, **England win + Under 3.5** captured the actual script better because it allowed exactly three goals while still avoiding a blowout.
+
+Lesson:
+
+> When 2-1 or 3-0 remains materially live, prefer a result + Under 3.5 structure over pure Under 2.5 if the price is acceptable.
