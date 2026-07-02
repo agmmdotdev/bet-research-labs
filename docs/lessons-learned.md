@@ -75,7 +75,25 @@ Lesson:
 
 > Do not use result + total only to boost odds. First confirm that the 90-minute win leg is strong enough by itself; then add the total condition only if it matches the most likely score band.
 
-## 8. Track result quality and process quality separately
+## 8. Main-pick labels must be stricter than alternative labels
+
+Recent results showed that alternatives often captured the match script better than the labeled main pick. England vs DR Congo is the clearest example: pure **Under 2.5** was too strict, while **England win + Under 3.5** allowed the live 2-1 / 3-0 score band. USA vs Bosnia also showed that an underdog scoring route should not automatically become a BTTS main pick unless the scoring evidence is strong enough and the market is clearly mispriced.
+
+New rule:
+
+> A market becomes the main pick only if it is robust across the top score cluster, has enough EV after market calibration, and is not dependent on a single fragile assumption.
+
+Practical changes:
+
+| Situation | Main-pick rule |
+|---|---|
+| BTTS depends mainly on one underdog goal | Prefer underdog team total or downgrade to alternative unless price is clearly strong. |
+| Top scores include 2-1 and 3-0 materially | Prefer win + Under 3.5 or Asian total over pure Under 2.5. |
+| Favorite has short ML but margin risk is high | Do not force -1.5; use result + total, team total, or pass. |
+| Model edge disappears under market-calibrated scenario | Downgrade from main to lean/alternative. |
+| Main and alternative both fit | Label the market the user is most likely to place separately from the theoretical model top pick. |
+
+## 9. Track result quality and process quality separately
 
 A bet can win for the wrong reason, and a bet can lose despite a good read. The log should record both.
 
